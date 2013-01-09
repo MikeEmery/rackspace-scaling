@@ -15,4 +15,5 @@ Gem::Specification.new do |gem|
   gem.require_paths = ["lib"]
   gem.version       = Rackspace::Scaling::VERSION
   gem.add_runtime_dependency 'typhoeus', '~> 0.4.2'
+  gem.add_runtime_dependency 'json'
 end
