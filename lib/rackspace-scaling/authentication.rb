@@ -28,12 +28,12 @@ module Rackspace
           
           parsed_response['access']['serviceCatalog'].each do |entry|
             @service_catalog[entry['name']] = {
-              :type => entry['type'],
-              :endpoints => {}
+              'type' => entry['type'],
+              'endpoints' => {}
             }
             
             entry['endpoints'].each do |endpoint|
-              @service_catalog[entry['name']][:endpoints][endpoint['region']] = endpoint
+              @service_catalog[entry['name']]['endpoints'][endpoint['region']] = endpoint
             end
           end
           
