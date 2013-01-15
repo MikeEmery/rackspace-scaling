@@ -22,11 +22,28 @@ module Rackspace
         end
       end
       
-      def create
+      def create(options = {})
+        create_options = {
+          :server => {
+            'name' => options[:name],
+            'imageRef' => options[:image_id],
+            'flavorRef' => options[:flavor_id] 
+          }
+        }
+        puts create_options.to_json
+        resp = Typhoeus::Request.post(@server_endpoint, :headers => { 'X-Auth-Token' => @auth.token, 'Accept' => 'application/json'}, :body => create_options.to_json)
+        parsed_response = JSON.parse(resp.body)
       end
       
-      def list_instances
+      def delete
       end
-    end
+      
+      def list_servers
+        @server_list ||= begin
+          resp = Typhoeus::Request.get(@server_endpoint, :headers => { 'X-Auth-Token' => @auth.token, 'Accept' => 'application/json'})
+          parsed_response = JSON.parse(resp.body)
+        end
+      end
+    end # /ServerOperation
   end
 end

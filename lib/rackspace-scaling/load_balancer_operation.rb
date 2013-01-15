@@ -12,6 +12,6 @@ module Rackspace
           parsed_response = JSON.parse(resp.body)
         end
       end
-    end # /LoadBalancer
+    end # /LoadBalancerOperation
   end
 end
