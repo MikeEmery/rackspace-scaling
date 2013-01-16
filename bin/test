@@ -1,4 +1,0 @@
-#!/usr/bin/env bash
-
-rake install
-./bin/test.rb

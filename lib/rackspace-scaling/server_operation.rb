@@ -22,6 +22,12 @@ module Rackspace
         end
       end
       
+      def status(server_id)
+        url = "#{@server_endpoint}/#{server_id}"
+        resp = Typhoeus::Request.get(url, :headers => { 'X-Auth-Token' => @auth.token, 'Accept' => 'application/json'})
+        JSON.parse(resp.body)
+      end
+      
       def create(options = {})
         create_options = {
           :server => {
@@ -35,7 +41,9 @@ module Rackspace
         parsed_response = JSON.parse(resp.body)
       end
       
-      def delete
+      def destroy(server_url)
+        resp = Typhoeus::Request.delete(server_url, :headers => { 'X-Auth-Token' => @auth.token, 'Accept' => 'application/json'})
+        return resp.success?
       end
       
       def list_servers
