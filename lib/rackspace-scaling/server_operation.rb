@@ -41,7 +41,8 @@ module Rackspace
         parsed_response = JSON.parse(resp.body)
       end
       
-      def destroy(server_url)
+      def destroy(guid)
+        server_url = "#{@server_endpoint}/#{guid}"
         resp = Typhoeus::Request.delete(server_url, :headers => { 'X-Auth-Token' => @auth.token, 'Accept' => 'application/json'})
         return resp.success?
       end

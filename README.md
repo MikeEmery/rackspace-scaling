@@ -63,7 +63,7 @@ You can then perform operations for servers or load balancers.
     puts = srv.create(:flavor_id => '2', :image_id => 'guid', :name => 'fooserver')
 
     #destroy a server
-    puts srv.destroy('https://dfw.servers.api.rackspacecloud.com/v2/12345/servers/server-guid')
+    puts srv.destroy('server-guid')
 
 ### Command-LIne
 
