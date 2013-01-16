@@ -1,6 +1,6 @@
 # Rackspace::Scaling
 
-TODO: Write a gem description
+This gem aims to provide a relatively simple library to increase your number of servers in a rackspace cloud and, optionally, attach those servers to a load balancer.  This gem is pretty low level in relation to the API, and doesn't abstract away much.
 
 ## Installation
 
@@ -18,7 +18,51 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+### Api
+
+The very first thing you need to do is get an authentication token.
+
+    auth = Rackspace::Scaling::Authentication.new('account_name', 'api_key')
+
+You can then perform operations for servers or load balancers.
+
+#### Load Balancers
+
+    lb = Rackspace::Scaling::LoadBalancerOperation.new(auth, 'DFW')
+
+    #list all load balancers
+    puts lb.list
+
+    #list all nodes attached to a load balancer
+    puts lb.nodes(86433)
+
+    #Add a node to a load balancer, defaults to port 80, can be overriden with the :port option
+    puts lb.add_node(:load_balancer_id => 12345, :node_ip => 'internal or external ip')
+
+    #remove a node
+    puts lb.remove_node(:load_balancer_id => 12345, :node_id => 67890)
+    
+#### Servers
+    srv = Rackspace::Scaling::ServerOperation.new(auth, 'DFW')
+
+    # lists all the available images you can create servers with
+    srv.list_images
+
+    #list flavours (sizes) of machines you can spin up
+    srv.list_flavors
+
+    #get the status for a specific instance
+    srv.status('server guid')
+
+    #create a new server, required parameters are :image_id, :flavor_id, and :name
+    puts = srv.create(:flavor_id => '2', :image_id => 'guid', :name => 'fooserver')
+
+    #destroy a server
+    puts srv.destroy('https://dfw.servers.api.rackspacecloud.com/v2/12345/servers/server-guid')
+
+### Command-LIne
+
+Still in progress
 
 ## Contributing
 

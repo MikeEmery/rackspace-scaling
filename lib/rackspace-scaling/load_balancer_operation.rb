@@ -13,7 +13,7 @@ module Rackspace
         end
       end
       
-      def images(load_balancer_id)
+      def nodes(load_balancer_id)
         path = "#{@endpoint}/#{load_balancer_id}/nodes"
         @images ||= begin
           resp = Typhoeus::Request.get(path, :headers => { 'X-Auth-Token' => @auth.token, 'Accept' => 'application/json'})
