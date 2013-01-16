@@ -2,6 +2,11 @@
 
 This gem aims to provide a relatively simple library to increase your number of servers in a rackspace cloud and, optionally, attach those servers to a load balancer.  This gem is pretty low level in relation to the API, and doesn't abstract away much.
 
+Detailed information about the API can be found  here:
+
+http://docs.rackspace.com/servers/api/v2/cs-devguide/content/ch_api_operations.html
+http://docs.rackspace.com/loadbalancers/api/v1.0/clb-devguide/content/API_Operations-d1e1354.html
+
 ## Installation
 
 Add this line to your application's Gemfile:
@@ -34,7 +39,7 @@ You can then perform operations for servers or load balancers.
     puts lb.list
 
     #list all nodes attached to a load balancer
-    puts lb.nodes(86433)
+    puts lb.nodes(12345)
 
     #Add a node to a load balancer, defaults to port 80, can be overriden with the :port option
     puts lb.add_node(:load_balancer_id => 12345, :node_ip => 'internal or external ip')
