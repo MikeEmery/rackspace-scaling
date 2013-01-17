@@ -1,0 +1,108 @@
+#!/usr/bin/env ruby
+
+require 'optparse'
+require 'rackspace-scaling'
+require 'ostruct'
+
+class ScaleUp
+  attr_reader :options
+
+  def initialize(args)
+    @options = OpenStruct.new
+    @options.n_increase = 1
+    @options.region = 'DFW'
+    parse_options(args)
+  end
+
+  def parse_options(args)
+
+    parser = OptionParser.new do |opts|
+      opts.banner = "Usage: --login LOGIN --api-key API_KEY rackspace_scale_up -l LOAD_BALANCER_ID [-n INSTANCES_TO_CREATE] [-s SCALE_FACTOR]"
+
+      opts.on('--login LOGIN', 'Your rackspace login.') { |login|
+        options.login = login
+      }
+
+      opts.on('--api-key API_KEY', 'Your rackspace API key.') { |api_key|
+        options.api_key = api_key
+      }
+      
+      opts.on('-r REGION', 'Three letter acronym representing the data center.  Defaults to DFW.')
+
+      opts.on('-l LOAD_BALANCER_ID', OptionParser::DecimalInteger, 'Numeric id of the load balancer.') { |lb_id|
+        options.load_balancer_id = lb_id
+      }
+
+      opts.on('-s SCALE_FACTOR', OptionParser::DecimalInteger, 'Increase the number of instances on the load balancer by s times.') { |scale|
+        options.scale = scale
+      }
+
+      opts.on('-n INSTANCES_TO_CREATE', OptionParser::DecimalInteger, 'Increase the number of instances by n') { |n_increase|
+        options.n_increase = n_increase
+      }
+
+      opts.on_tail("-h", "--help", "Show this message") do
+        puts parser
+        exit
+      end
+    end
+
+    parser.parse!(args)
+
+    if (options.login.nil? || options.api_key.nil? || options.load_balancer_id.nil?)
+      puts parser
+    end
+
+    if(options.n_increase && options.scale)
+      puts "You can't specify both an linear increase in instances and a scale factor"
+      puts parser
+    end
+
+    puts options.inspect
+  end
+
+  def run
+    auth = Rackspace::Scaling::Authentication.new(options.login, options.api_key)
+    lb = Rackspace::Scaling::LoadBalancerOperation.new(auth, options.region)
+    srv = Rackspace::Scaling::ServerOperation.new(auth, options.region)
+    nodes = lb.nodes(86433)
+    
+    instance_ip = nodes['nodes'].first['address']
+    
+    servers = srv.list_servers(:detail => true)
+    server = find_instance_by_ip(instance_ip, servers)
+    puts server
+    
+    if(options.scale)
+      options.n_increase = nodes * options.scale
+    end
+    
+    options.n_increase.times do |i|
+      sleep(10)
+      new_server = srv.create(:name => "#{server['name']}-#{i}", :image_id => server['image']['id'], :flavor_id => server['flavor']['id'])
+      puts new_server
+      putc '.'
+    end
+    
+    puts 'done'
+  end
+  
+  def find_instance_by_ip(target_ip, server_list)
+    puts target_ip
+    
+    server_list['servers'].each do |server|
+      server['addresses'].each do |k, v|
+        v.each do |ip|
+          if(ip['addr'] == target_ip)
+            return server
+          end
+        end
+      end
+    end
+    
+    nil
+  end
+end
+
+s = ScaleUp.new(ARGV)
+s.run

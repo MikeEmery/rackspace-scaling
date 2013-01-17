@@ -36,8 +36,8 @@ module Rackspace
             'flavorRef' => options[:flavor_id] 
           }
         }
-        puts create_options.to_json
         resp = Typhoeus::Request.post(@server_endpoint, :headers => { 'X-Auth-Token' => @auth.token, 'Accept' => 'application/json', 'Content-Type' => 'application/json'}, :body => create_options.to_json)
+        puts resp.headers
         parsed_response = JSON.parse(resp.body)
       end
       
@@ -47,9 +47,15 @@ module Rackspace
         return resp.success?
       end
       
-      def list_servers
+      def list_servers(options = {})
+        url = "#{@server_endpoint}"
+        
+        if(options[:detail])
+          url += '/detail'
+        end
+        
         @server_list ||= begin
-          resp = Typhoeus::Request.get(@server_endpoint, :headers => { 'X-Auth-Token' => @auth.token, 'Accept' => 'application/json'})
+          resp = Typhoeus::Request.get(url, :headers => { 'X-Auth-Token' => @auth.token, 'Accept' => 'application/json'})
           parsed_response = JSON.parse(resp.body)
         end
       end
