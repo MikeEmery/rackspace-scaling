@@ -36,6 +36,7 @@ module Rackspace
             'flavorRef' => options[:flavor_id] 
           }
         }
+        puts create_options.to_json
         resp = Typhoeus::Request.post(@server_endpoint, :headers => { 'X-Auth-Token' => @auth.token, 'Accept' => 'application/json', 'Content-Type' => 'application/json'}, :body => create_options.to_json)
         puts resp.headers
         parsed_response = JSON.parse(resp.body)

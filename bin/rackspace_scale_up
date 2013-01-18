@@ -51,11 +51,13 @@ class ScaleUp
 
     if (options.login.nil? || options.api_key.nil? || options.load_balancer_id.nil?)
       puts parser
+      exit(1)
     end
 
     if(options.n_increase && options.scale)
       puts "You can't specify both an linear increase in instances and a scale factor"
       puts parser
+      exit(1)
     end
 
     puts options.inspect
@@ -87,21 +89,7 @@ class ScaleUp
     puts 'done'
   end
   
-  def find_instance_by_ip(target_ip, server_list)
-    puts target_ip
-    
-    server_list['servers'].each do |server|
-      server['addresses'].each do |k, v|
-        v.each do |ip|
-          if(ip['addr'] == target_ip)
-            return server
-          end
-        end
-      end
-    end
-    
-    nil
-  end
+
 end
 
 s = ScaleUp.new(ARGV)
