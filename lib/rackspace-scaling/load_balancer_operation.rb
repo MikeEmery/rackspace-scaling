@@ -9,7 +9,7 @@ module Rackspace
       def list
         @list ||= begin
           resp = Typhoeus::Request.get(@endpoint, :headers => { 'X-Auth-Token' => @auth.token, 'Accept' => 'application/json'})
-          parsed_response = JSON.parse(resp.body)
+          parsed_response = JSON.parse(resp.body)['loadBalancers']
         end
       end
       
@@ -17,7 +17,7 @@ module Rackspace
         path = "#{@endpoint}/#{load_balancer_id}/nodes"
         @images ||= begin
           resp = Typhoeus::Request.get(path, :headers => { 'X-Auth-Token' => @auth.token, 'Accept' => 'application/json'})
-          parsed_response = JSON.parse(resp.body)
+          parsed_response = JSON.parse(resp.body)['nodes']
         end
       end
       
@@ -35,7 +35,7 @@ module Rackspace
         }
         path = "#{@endpoint}/#{load_balancer_id}/nodes"
         resp = Typhoeus::Request.post(path, :headers => { 'X-Auth-Token' => @auth.token, 'Accept' => 'application/json', 'Content-Type' => 'application/json'}, :body => body.to_json)
-        JSON.parse(resp.body)
+        JSON.parse(resp.body)['nodes']
       end
       
       def remove_node(options = {})

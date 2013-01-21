@@ -5,6 +5,7 @@ require 'rackspace-scaling'
 require 'ostruct'
 
 class ScaleUp
+  include Rackspace::Scaling::CmdUtil
   attr_reader :options
 
   def initialize(args)
@@ -17,7 +18,7 @@ class ScaleUp
   def parse_options(args)
 
     parser = OptionParser.new do |opts|
-      opts.banner = "Usage: --login LOGIN --api-key API_KEY rackspace_scale_up -l LOAD_BALANCER_ID [-n INSTANCES_TO_CREATE] [-s SCALE_FACTOR]"
+      opts.banner = "Usage: --login LOGIN --api-key API_KEY rackspace_scale_up -l LOAD_BALANCER_ID -i IMAGE_NAME [-n INSTANCES_TO_CREATE] [-s SCALE_FACTOR]"
 
       opts.on('--login LOGIN', 'Your rackspace login.') { |login|
         options.login = login
@@ -31,6 +32,10 @@ class ScaleUp
 
       opts.on('-l LOAD_BALANCER_ID', OptionParser::DecimalInteger, 'Numeric id of the load balancer.') { |lb_id|
         options.load_balancer_id = lb_id
+      }
+      
+      opts.on('-i IMAGE_NAME', 'Name of the image you want to use to scale') { |image_name|
+        options.image_name = image_name
       }
 
       opts.on('-s SCALE_FACTOR', OptionParser::DecimalInteger, 'Increase the number of instances on the load balancer by s times.') { |scale|
@@ -49,44 +54,84 @@ class ScaleUp
 
     parser.parse!(args)
 
-    if (options.login.nil? || options.api_key.nil? || options.load_balancer_id.nil?)
+    if (options.login.nil? || options.api_key.nil? || options.load_balancer_id.nil? || options.image_name.nil?)
       puts parser
       exit(1)
     end
 
     if(options.n_increase && options.scale)
-      puts "You can't specify both an linear increase in instances and a scale factor"
+      puts "You can't specify both a fixed increase in instances and a scale factor"
       puts parser
       exit(1)
     end
-
-    puts options.inspect
   end
 
   def run
+    print "Getting api token..."
     auth = Rackspace::Scaling::Authentication.new(options.login, options.api_key)
     lb = Rackspace::Scaling::LoadBalancerOperation.new(auth, options.region)
     srv = Rackspace::Scaling::ServerOperation.new(auth, options.region)
-    nodes = lb.nodes(86433)
+    puts "done"
     
-    instance_ip = nodes['nodes'].first['address']
+    nodes = lb.nodes(options.load_balancer_id)
     
+    instance_ip = nodes.first['address']
+    
+    print("Listing servers...")
     servers = srv.list_servers(:detail => true)
+    puts("done")
+    
+    print("Retrieving server for IP #{instance_ip}...")
     server = find_instance_by_ip(instance_ip, servers)
-    puts server
+    puts("done")
+    
+    print("Listing images...")
+    images = srv.list_images(:detail => true)
+    puts("done")
+    
+    print("Finding image for name #{options.image_name}...")
+    image = find_image_by_name(options.image_name, images)
+    puts("done")
     
     if(options.scale)
       options.n_increase = nodes * options.scale
     end
     
+    puts "Increasing number of instances by #{options.n_increase}"
+    
+    created_servers = []
     options.n_increase.times do |i|
-      sleep(10)
-      new_server = srv.create(:name => "#{server['name']}-#{i}", :image_id => server['image']['id'], :flavor_id => server['flavor']['id'])
-      puts new_server
-      putc '.'
+      print("Creating server...")
+      new_server = srv.create(:name => "#{image['name']}", :image_id => image['id'], :flavor_id => server['flavor']['id'])
+      puts("done")
+      
+      if(new_server)
+        created_servers << new_server['id']
+      end
     end
     
-    puts 'done'
+    puts "Created #{created_servers.size} new servers"
+    
+    while(created_servers.size > 0)
+      created_servers.dup.each do |server_id|
+        new_server_details = srv.status(server_id)
+        
+        if(new_server_details['addresses'].any?)
+          private_ip = new_server_details['addresses']['private'].first['addr']
+          puts "Server #{server_id} has ip #{private_ip}"
+          
+          print("Adding server to load balancer...")
+          lb.add_node(:load_balancer_id => options.load_balancer_id, :node_ip => private_ip)
+          puts("done")
+          created_servers.delete(server_id)
+        else
+          puts "Server #{server_id} doesn't have an IP yet, waiting."
+        end
+      end
+      sleep(5) if created_servers.any?
+    end
+    
+    puts 'Scaling complete'
   end
   
 

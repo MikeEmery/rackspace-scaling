@@ -1,0 +1,117 @@
+#!/usr/bin/env ruby
+
+require 'optparse'
+require 'rackspace-scaling'
+require 'ostruct'
+
+class ScaleDown
+  include Rackspace::Scaling::CmdUtil
+  attr_reader :options
+
+  def initialize(args)
+    @options = OpenStruct.new
+    @options.n_decrease = 1
+    @options.region = 'DFW'
+    parse_options(args)
+  end
+  
+  def parse_options(args)
+    parser = OptionParser.new do |opts|
+      opts.banner = "Usage: --login LOGIN --api-key API_KEY rackspace_scale_down -l LOAD_BALANCER_ID [-n INSTANCES_TO_CREATE] [-s SCALE_FACTOR]"
+      
+      opts.on('--login LOGIN', 'Your rackspace login.') { |login|
+        options.login = login
+      }
+
+      opts.on('--api-key API_KEY', 'Your rackspace API key.') { |api_key|
+        options.api_key = api_key
+      }
+      
+      opts.on('-r REGION', 'Three letter acronym representing the data center.  Defaults to DFW.')
+
+      opts.on('-l LOAD_BALANCER_ID', OptionParser::DecimalInteger, 'Numeric id of the load balancer.') { |lb_id|
+        options.load_balancer_id = lb_id
+      }
+      
+      opts.on('-s SCALE_FACTOR', OptionParser::DecimalInteger, 'Decrease the number of instances on the load balancer by 1/s times, rounded down.') { |scale|
+        options.scale = scale
+      }
+
+      opts.on('-n INSTANCES_TO_DESTROY', OptionParser::DecimalInteger, 'Increase the number of instances by n') { |n_decrease|
+        options.n_decrease = n_increase
+      }
+
+      opts.on_tail("-h", "--help", "Show this message") do
+        puts parser
+        exit
+      end
+    end
+    
+    parser.parse!(args)
+
+    if (options.login.nil? || options.api_key.nil? || options.load_balancer_id.nil?)
+      puts parser
+      exit(1)
+    end
+
+    if(options.n_decrease && options.scale)
+      puts "You can't specify both a fixed decrease in instances and a scale factor"
+      puts parser
+      exit(1)
+    end
+  end
+  
+  def run
+    print "Getting api token..."
+    auth = Rackspace::Scaling::Authentication.new(options.login, options.api_key)
+    lb = Rackspace::Scaling::LoadBalancerOperation.new(auth, options.region)
+    srv = Rackspace::Scaling::ServerOperation.new(auth, options.region)
+    puts "done"
+
+    print "Getting list of nodes attached to load balancer..."
+    nodes = lb.nodes(options.load_balancer_id)
+    puts "done"
+    
+    puts nodes.inspect
+    
+    print("Listing servers...")
+    servers = srv.list_servers(:detail => true)
+    puts("done")
+    
+    if(options.scale)
+      options.n_decrease = (nodes.size / options.scale).floor
+      puts "You only have #{nodes.size} nodes available, scaling down by #{options.n_decrease} instead"
+    end
+    
+    options.n_decrease = [nodes.size - 1, options.n_decrease].min
+    
+    puts "Scaling down by #{options.n_decrease}"
+    
+    puts nodes.first['condition']
+    
+    nodes.sort!{ |a, b| a['condition'] <=> b['condition'] } # take disabled nodes first
+    removed_nodes = 0
+    
+    nodes.each do |node|
+      instance_ip = node['address']
+      server = find_instance_by_ip(instance_ip, servers)
+      
+      print("Removing node #{node['address']} from load balancer...")
+      lb.remove_node(:load_balancer_id => options.load_balancer_id, :node_id => node['id'])
+      puts "done"
+      
+      print("Destroying server for ip #{node['address']}...")
+      result = srv.destroy(server['id'])
+      puts(result)
+      
+      removed_nodes += 1
+      
+      if(removed_nodes >= options.n_decrease)
+        break
+      end
+    end
+  end
+end
+
+scale_down = ScaleDown.new(ARGV)
+scale_down.run

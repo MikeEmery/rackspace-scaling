@@ -8,24 +8,29 @@ module Rackspace
         @image_endpoint = @auth.endpoints['cloudServersOpenStack']['endpoints'][region]['publicURL']+"/images"
       end
       
-      def list_images
+      def list_images(options = {})
+        url = "#{@image_endpoint}"
+        if(options[:detail])
+          url = "#{url}/detail"
+        end
+        
         @image_list ||= begin
-          resp = Typhoeus::Request.get(@image_endpoint, :headers => { 'X-Auth-Token' => @auth.token, 'Accept' => 'application/json'})
-          parsed_response = JSON.parse(resp.body)
+          resp = Typhoeus::Request.get(url, :headers => { 'X-Auth-Token' => @auth.token, 'Accept' => 'application/json'})
+          parsed_response = JSON.parse(resp.body)['images']
         end
       end
       
       def list_flavors
         @flavor_list ||= begin
           resp = Typhoeus::Request.get(@flavor_endpoint, :headers => { 'X-Auth-Token' => @auth.token, 'Accept' => 'application/json'})
-          parsed_response = JSON.parse(resp.body)
+          parsed_response = JSON.parse(resp.body)['flavors']
         end
       end
       
       def status(server_id)
         url = "#{@server_endpoint}/#{server_id}"
         resp = Typhoeus::Request.get(url, :headers => { 'X-Auth-Token' => @auth.token, 'Accept' => 'application/json'})
-        JSON.parse(resp.body)
+        JSON.parse(resp.body)['server']
       end
       
       def create(options = {})
@@ -36,10 +41,8 @@ module Rackspace
             'flavorRef' => options[:flavor_id] 
           }
         }
-        puts create_options.to_json
         resp = Typhoeus::Request.post(@server_endpoint, :headers => { 'X-Auth-Token' => @auth.token, 'Accept' => 'application/json', 'Content-Type' => 'application/json'}, :body => create_options.to_json)
-        puts resp.headers
-        parsed_response = JSON.parse(resp.body)
+        parsed_response = JSON.parse(resp.body)['server']
       end
       
       def destroy(guid)
@@ -57,7 +60,7 @@ module Rackspace
         
         @server_list ||= begin
           resp = Typhoeus::Request.get(url, :headers => { 'X-Auth-Token' => @auth.token, 'Accept' => 'application/json'})
-          parsed_response = JSON.parse(resp.body)
+          parsed_response = JSON.parse(resp.body)['servers']
         end
       end
     end # /ServerOperation
