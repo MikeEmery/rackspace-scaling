@@ -7,6 +7,13 @@ Detailed information about the API can be found  here:
 http://docs.rackspace.com/servers/api/v2/cs-devguide/content/ch_api_operations.html
 http://docs.rackspace.com/loadbalancers/api/v1.0/clb-devguide/content/API_Operations-d1e1354.html
 
+There are also official rackspace gems that provide the same functionality available here:
+
+https://github.com/rackspace/ruby-cloudlb
+https://github.com/rackspace/ruby-cloudservers
+
+I didn't know these gems existed when I started work on this project :(
+
 ## Installation
 
 Add this line to your application's Gemfile:
@@ -67,7 +74,15 @@ You can then perform operations for servers or load balancers.
 
 ### Command-LIne
 
-Still in progress
+You can either increase or decrease the number of servers you have running.  
+
+#### Scale Up
+
+    rackspace_scale_up --api-key myapikey --login mylogin -l 12345 -i server-image-name -n 2
+
+#### Scale Down
+
+    rackspace_scale_down --api-key myapikey --login mylogin -l 12345 -n 2
 
 ## Contributing
 
