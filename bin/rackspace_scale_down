@@ -38,7 +38,7 @@ class ScaleDown
       }
 
       opts.on('-n INSTANCES_TO_DESTROY', OptionParser::DecimalInteger, 'Increase the number of instances by n') { |n_decrease|
-        options.n_decrease = n_increase
+        options.n_decrease = n_decrease
       }
 
       opts.on_tail("-h", "--help", "Show this message") do
@@ -72,8 +72,6 @@ class ScaleDown
     nodes = lb.nodes(options.load_balancer_id)
     puts "done"
     
-    puts nodes.inspect
-    
     print("Listing servers...")
     servers = srv.list_servers(:detail => true)
     puts("done")
@@ -87,12 +85,15 @@ class ScaleDown
     
     puts "Scaling down by #{options.n_decrease}"
     
-    puts nodes.first['condition']
-    
     nodes.sort!{ |a, b| a['condition'] <=> b['condition'] } # take disabled nodes first
     removed_nodes = 0
     
     nodes.each do |node|
+      
+      if(removed_nodes >= options.n_decrease)
+         break
+       end
+      
       instance_ip = node['address']
       server = find_instance_by_ip(instance_ip, servers)
       
@@ -105,10 +106,6 @@ class ScaleDown
       puts(result)
       
       removed_nodes += 1
-      
-      if(removed_nodes >= options.n_decrease)
-        break
-      end
     end
   end
 end

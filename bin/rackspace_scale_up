@@ -116,7 +116,7 @@ class ScaleUp
       created_servers.dup.each do |server_id|
         new_server_details = srv.status(server_id)
         
-        if(new_server_details['addresses'].any?)
+        if(new_server_details['addresses'].any? && new_server_details['status'] == 'ACTIVE')
           private_ip = new_server_details['addresses']['private'].first['addr']
           puts "Server #{server_id} has ip #{private_ip}"
           
@@ -125,7 +125,7 @@ class ScaleUp
           puts("done")
           created_servers.delete(server_id)
         else
-          puts "Server #{server_id} doesn't have an IP yet, waiting."
+          puts "Server #{server_id} is not ready to be put into rotation (ip: #{new_server_details['addresses'].any?}, status: #{new_server_details['status']}), waiting."
         end
       end
       sleep(5) if created_servers.any?
